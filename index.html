@@ -795,7 +795,7 @@ body.lb-aberto .flutuante,body.menu-aberto .flutuante{display:none}
     </div>
   </section>
 
-  <section class="formacao" id="formacao">
+  <section class="formacao vivo" id="formacao">
     <div class="wrap">
       <div>
         <span class="olho anim">Talento é o produto</span>
@@ -1139,8 +1139,8 @@ body.lb-aberto .flutuante,body.menu-aberto .flutuante{display:none}
       .catch(function(){ feed.innerHTML = '<p class="vazio">As publicações mais recentes estão no <a class="link" href="https://www.linkedin.com/in/telma-soares/recent-activity/all/" target="_blank" rel="noopener">LinkedIn de Telma Soares</a>.</p>'; });
   }
 
-  /* pattern vivo (hero, números e contato): o grafismo do CEIA permanece na orientação original e ganha um zoom leve
-     e suave ao passar o mouse, com amortecimento independente de FPS e Path2D em cache. */
+  /* pattern vivo (todas as seções com grafismo): permanece na orientação original e ganha um zoom leve
+     e suave num raio curto (200px) ao passar o mouse, funcionando em todas as seções inclusive durante o scroll. */
   if(!reduz && window.matchMedia('(hover: hover)').matches){
     var S = 44, R = 22, T = 96, RAIO = 200, RAIO2 = RAIO * RAIO;
     var usaPath2D = typeof Path2D === 'function', caminhoForma = null;
@@ -1154,14 +1154,27 @@ body.lb-aberto .flutuante,body.menu-aberto .flutuante{display:none}
       caminhoForma.closePath();
     }
     function suave(t){ return t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t); }
+    var mouseX = -9999, mouseY = -9999, temMouse = false;
 
+    var instancias = [];
     document.querySelectorAll('.vivo').forEach(function(sec){
-      var escuro = sec.classList.contains('cta') || sec.classList.contains('numeros');
+      var escuro = !sec.classList.contains('hero');
       var cor = escuro ? [255,255,255] : [27,57,131], tinta = escuro ? [12,212,170] : [40,102,229];
-      var base = escuro ? .05 : .036, ganho = escuro ? .14 : .1;
+      var base = escuro ? .05 : .042, ganho = escuro ? .16 : .15;
       var cv = document.createElement('canvas'); cv.className = 'padrao-vivo'; sec.insertBefore(cv, sec.firstChild); sec.classList.add('ligado');
       var ctx = cv.getContext('2d'), W = 0, H = 0, dpr = 1, cels = [];
       var tx = 0, ty = 0, mx = 0, my = 0, px = 0, py = 0, pres = 0, dentro = false, jaEntrou = false, rodando = false, tAnt = 0;
+
+      function sincronizarCursor(){
+        if(!temMouse) return;
+        var r = sec.getBoundingClientRect();
+        var agoraDentro = mouseX >= r.left && mouseX <= r.right && mouseY >= r.top && mouseY <= r.bottom;
+        if(agoraDentro){
+          tx = mouseX - r.left; ty = mouseY - r.top;
+          if(!jaEntrou || pres < .02){ mx = px = tx; my = py = ty; jaEntrou = true; }
+        }
+        dentro = agoraDentro;
+      }
 
       function medir(){
         dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1180,12 +1193,12 @@ body.lb-aberto .flutuante,body.menu-aberto .flutuante{display:none}
       function desenhar(agora){
         var dt = Math.min(Math.max((agora - tAnt) / 1000, .001), .05);
         tAnt = agora;
-        var kPres = 1 - Math.exp(-dt * (dentro ? 2.8 : 1.6));
+        var kPres = 1 - Math.exp(-dt * (dentro ? 3.0 : 1.8));
         pres += ((dentro ? 1 : 0) - pres) * kPres;
-        var kCur = 1 - Math.exp(-dt * 3.6);
+        var kCur = 1 - Math.exp(-dt * 3.8);
         mx += (tx - mx) * kCur; my += (ty - my) * kCur;
         px += (mx - px) * kCur; py += (my - py) * kCur;
-        var kSubir = 1 - Math.exp(-dt * 3.2), kDescer = 1 - Math.exp(-dt * 1.8);
+        var kSubir = 1 - Math.exp(-dt * 3.4), kDescer = 1 - Math.exp(-dt * 1.9);
         var tResp = agora / 3400;
 
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1198,15 +1211,15 @@ body.lb-aberto .flutuante,body.menu-aberto .flutuante{display:none}
           c.e += (inf - c.e) * (inf > c.e ? kSubir : kDescer);
 
           var onda = Math.sin(tResp + c.fase);
-          var a = base + .005 * onda + ganho * c.e;
+          var a = base + .006 * onda + ganho * c.e;
           if(c.e > .002){
-            var m = c.e * .65;
+            var m = c.e * .7;
             ctx.fillStyle = 'rgba(' + ((cor[0] + dr0 * m + .5) | 0) + ',' + ((cor[1] + dg0 * m + .5) | 0) + ',' + ((cor[2] + db0 * m + .5) | 0) + ',' + a.toFixed(4) + ')';
           } else {
             ctx.fillStyle = 'rgba(' + cor[0] + ',' + cor[1] + ',' + cor[2] + ',' + a.toFixed(4) + ')';
           }
-          /* zoom leve no lugar da rotação: cresce até ~18% num raio curto (200px) + respiração sutil */
-          var esc = (1 + .18 * c.e + .01 * onda) * dpr;
+          /* zoom leve no lugar da rotação: cresce até ~24% num raio curto (200px) + respiração sutil */
+          var esc = (1 + .24 * c.e + .012 * onda) * dpr;
           var cos = c.cos * esc, sin = c.sin * esc;
           ctx.setTransform(cos, sin, -sin, cos, c.cx * dpr, c.cy * dpr);
           if(usaPath2D){
@@ -1221,18 +1234,25 @@ body.lb-aberto .flutuante,body.menu-aberto .flutuante{display:none}
       var vis = true;
       function laco(agora){ if(!vis){ rodando = false; return; } desenhar(agora); requestAnimationFrame(laco); }
       function liga(){ if(!rodando){ rodando = true; tAnt = performance.now(); requestAnimationFrame(laco); } }
-      sec.addEventListener('mousemove', function(ev){
-        var r = sec.getBoundingClientRect();
-        tx = ev.clientX - r.left; ty = ev.clientY - r.top;
-        if(!jaEntrou || pres < .02){ mx = px = tx; my = py = ty; jaEntrou = true; }
-        dentro = true;
-      }, {passive:true});
-      sec.addEventListener('mouseleave', function(){ dentro = false; }, {passive:true});
-      if('IntersectionObserver' in window){ new IntersectionObserver(function(es){ vis = es[0].isIntersecting; if(vis) liga(); }).observe(sec); } else liga();
+      if('IntersectionObserver' in window){ new IntersectionObserver(function(es){ vis = es[0].isIntersecting; if(vis){ sincronizarCursor(); liga(); } }).observe(sec); } else liga();
       var ro = 'ResizeObserver' in window ? new ResizeObserver(medir) : null;
       if(ro) ro.observe(sec); else window.addEventListener('resize', medir);
       medir();
+      instancias.push(sincronizarCursor);
     });
+
+    window.addEventListener('mousemove', function(ev){
+      mouseX = ev.clientX; mouseY = ev.clientY; temMouse = true;
+      for(var i = 0; i < instancias.length; i++) instancias[i]();
+    }, {passive:true});
+    window.addEventListener('scroll', function(){
+      if(!temMouse) return;
+      for(var i = 0; i < instancias.length; i++) instancias[i]();
+    }, {passive:true});
+    document.addEventListener('mouseleave', function(){
+      temMouse = false; mouseX = -9999; mouseY = -9999;
+      for(var i = 0; i < instancias.length; i++) instancias[i]();
+    }, {passive:true});
   }
 })();
 </script>
